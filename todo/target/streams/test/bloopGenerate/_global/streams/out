@@ -1,0 +1,4 @@
+[debug] [todo-test] Classpath dependencies List()
+[debug] [todo-test] Dependencies from configurations List(todo)
+[debug] Bloop wrote the configuration of project 'todo-test' to 'C:\Users\TRENDINGPC\Downloads\todo\todo\.bloop\todo-test.json'
+[success] Generated .bloop\todo-test.json
