@@ -8,6 +8,8 @@ import io.circe.parser.*
 import io.circe.syntax.*
 import scala.collection.mutable
 import todo.data.*
+import todo.PersistentModel.loadTasks
+import todo.PersistentModel.loadId
 
 /**
  * The PersistentModel is a model that saves all data to files, meaning that
@@ -76,6 +78,7 @@ object PersistentModel extends Model:
    */
   def saveId(id: Id): Unit =
     save(idPath, id)
+      
 
   /**
    * Save data to a file in JSON format.
@@ -97,32 +100,48 @@ object PersistentModel extends Model:
    * (The InMemoryModel uses the same.)
    */
 
+  private val idGenerator = IdGenerator(loadId())
+
+  private val idStore: mutable.LinkedHashMap[Id, Task] =
+    mutable.LinkedHashMap.from(loadTasks().tasks.map(task => task))
+    
   def create(task: Task): Id =
-    ???
+    val id = idGenerator.nextId() 
+    idStore += (id -> task) // Añadir la id con tarea a la idStore
+    saveTasks(tasks) //guardar la tarea al crearla en la ruta con la que está el archivo con las tareas
+    saveId(id) //guardar la id en la función donde busca el archivo con las id guardadas
+    id
 
   def read(id: Id): Option[Task] =
-    ???
+    idStore.get(id) 
 
   def update(id: Id)(f: Task => Task): Option[Task] =
-    ???
+    idStore.updateWith(id) {
+      case Some(task) => Some(f(task))
+      case None => None //actualizar tarea, en caso de que haya alguna actualizarla, sino no
+    }
 
   def delete(id: Id): Boolean =
-    ???
+    idStore.remove(id).isDefined
 
   def tasks: Tasks =
-    ???
+    Tasks(idStore.toList) //listar tareas
 
   def tasks(tag: Tag): Tasks =
-    ???
+    Tasks(idStore.filter { case(_,task)=> task.tags.contains(tag) }.toList)  //filtrar las tareas que tienen el filtro
 
   def complete(id: Id): Option[Task] =
-    ???
+    idStore.get(id).map { task => 
+      val updatedTask = task.copy(state = State.completedNow)
+      idStore.update(id, updatedTask)
+      updatedTask //hacer una copia del estado y actualizarlo a completado, si se vuelve a dar, se desmarcará como completo
+    }
 
   def tags: Tags =
-    ???
+    Tags(idStore.values.flatMap(_.tags).toList.distinct)
 
   /**
   * Delete the tasks and id files if they exist.
   */
   def clear(): Unit =
-    ???
+    idStore.clear()
